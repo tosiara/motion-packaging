@@ -51,6 +51,11 @@ if [ "$DISTO" != "Ubuntu" ] &&
   exit 1
 fi
 
+if [ "$DISTROMAJOR" == "n/a" ]; then
+  echo "Could not get DISTROMAJOR release number, forcing 99"
+  DISTROMAJOR=99
+fi
+
 if [ -z "$DEBUSERNAME" ] || [ -z "$DEBUSEREMAIL" ] || [ -z "$GITBRANCH" ]; then
   echo
   echo "Usage:    builddeb.sh name email <optional branch>"
