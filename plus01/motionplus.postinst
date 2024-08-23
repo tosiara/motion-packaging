@@ -1,6 +1,5 @@
 #!/bin/sh
-# postinst script for motion
-# Made by Angel Carpintero
+# postinst script for motionplus
 
 set -e
 
@@ -14,13 +13,14 @@ add_group_if_missing() {
 
 add_user_if_missing() {
     if ! id -u motion > /dev/null 2>&1; then
-        mkdir -m 02750 -p /var/lib/motion
-        adduser --system --home /var/lib/motion \
+        mkdir -m 02750 -p /var/lib/motionplus
+        adduser --system --home /var/lib/motionplus \
+          --no-create-home \
           --disabled-password \
           --force-badname motion \
           --ingroup motion
         adduser motion video
-        chown motion:adm /var/lib/motion
+        chown motion:adm /var/lib/motionplus
     fi
 }
 

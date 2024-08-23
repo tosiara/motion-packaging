@@ -1,14 +1,14 @@
 #!/bin/sh
 
 ##############################################################################################
-#  Build Script for Motion application.
+#  Build Script for MotionPlus application.
 #  This script is currently only functional for Debian based systems.
 #  The following is the overall flow:
 #  0.  Validate distribution, user parameters and packages
-#  1.  Create a temporary directory and copy in the Motion code.
+#  1.  Create a temporary directory and copy in the MotionPlus code.
 #  2.  Clean out any working files from the code base copied.
 #  3.  Tar up the code and move up to directory parent.
-#  4.  Retrieve from git the package rules (usually debian)
+#  4.  Retrieve from git the package rules
 #  5.  Change to the applicable branch of package rules and move them to appropriate location.
 #  6.  Call the packager application (dpkg-buildpackage) output result to a buildlog file.
 #  7.  Move resulting files to the parent of the original source code directory and clean up
@@ -51,12 +51,20 @@ if [ "$DISTO" != "Ubuntu" ] &&
   exit 1
 fi
 
+if [ "$DISTO" = "Raspbian" ] && [ "$DISTROMAJOR" -ge "12" ]; then
+  USELIBCAM="Y"
+elif [ "$DISTO" = "Debian" ] && [ "$DISTROMAJOR" -ge "12" ]; then
+  USELIBCAM="Y"
+else
+  USELIBCAM="N"
+fi
+
 if [ -z "$DEBUSERNAME" ] || [ -z "$DEBUSEREMAIL" ] || [ -z "$GITBRANCH" ]; then
   echo
-  echo "Usage:    builddeb.sh name email <optional branch>"
+  echo "Usage:    buildplus.sh name email <optional branch>"
   echo "Name:     Name to use for deb package must not include spaces"
   echo "Email:    Email address to use for deb package"
-  echo "Branch:   The git branch name of Motion to build (If none specified, uses master)"
+  echo "Branch:   The git branch name of MotionPlus to build (If none specified, uses master)"
   echo "Install:  Install required packages"
   echo "Arch:     Architecture"
   echo
@@ -99,6 +107,7 @@ sleep 3
 #########################################################################################
 if !( dpkg-query -W -f'${Status}' "build-essential" 2>/dev/null | grep -q "ok installed"); then MISSINGPKG=$MISSINGPKG" build-essential"; fi
 if !( dpkg-query -W -f'${Status}' "git" 2>/dev/null | grep -q "ok installed"); then MISSINGPKG=$MISSINGPKG" git"; fi
+if !( dpkg-query -W -f'${Status}' "pkgconf" 2>/dev/null | grep -q "ok installed"); then MISSINGPKG=$MISSINGPKG" pkgconf"; fi
 if !( dpkg-query -W -f'${Status}' "autoconf" 2>/dev/null | grep -q "ok installed"); then MISSINGPKG=$MISSINGPKG" autoconf"; fi
 if !( dpkg-query -W -f'${Status}' "automake" 2>/dev/null | grep -q "ok installed"); then MISSINGPKG=$MISSINGPKG" automake"; fi
 if !( dpkg-query -W -f'${Status}' "libtool" 2>/dev/null | grep -q "ok installed"); then MISSINGPKG=$MISSINGPKG" libtool"; fi
@@ -117,6 +126,10 @@ if !( dpkg-query -W -f'${Status}' "libwebp-dev" 2>/dev/null | grep -q "ok instal
 if !( dpkg-query -W -f'${Status}' "libmicrohttpd-dev" 2>/dev/null | grep -q "ok installed"); then MISSINGPKG=$MISSINGPKG" libmicrohttpd-dev"; fi
 if !( dpkg-query -W -f'${Status}' "gettext" 2>/dev/null | grep -q "ok installed"); then MISSINGPKG=$MISSINGPKG" gettext"; fi
 if !( dpkg-query -W -f'${Status}' "fakeroot" 2>/dev/null | grep -q "ok installed"); then MISSINGPKG=$MISSINGPKG" fakeroot"; fi
+if !( dpkg-query -W -f'${Status}' "libasound2-dev" 2>/dev/null | grep -q "ok installed"); then MISSINGPKG=$MISSINGPKG" libasound2-dev"; fi
+if !( dpkg-query -W -f'${Status}' "libpulse-dev" 2>/dev/null | grep -q "ok installed"); then MISSINGPKG=$MISSINGPKG" libpulse-dev"; fi
+if !( dpkg-query -W -f'${Status}' "libfftw3-dev" 2>/dev/null | grep -q "ok installed"); then MISSINGPKG=$MISSINGPKG" libfftw3-dev"; fi
+if !( dpkg-query -W -f'${Status}' "libopencv-dev" 2>/dev/null | grep -q "ok installed"); then MISSINGPKG=$MISSINGPKG" libopencv-dev"; fi
 
 if [ "$DISTO" = "Ubuntu" ] && [ "$DISTROMAJOR" -ge "20" ]; then
   if !( dpkg-query -W -f'${Status}' "libmariadb-dev" 2>/dev/null | grep -q "ok installed"); then MISSINGPKG=$MISSINGPKG" libmariadb-dev"; fi
@@ -132,16 +145,10 @@ else
   if !( dpkg-query -W -f'${Status}' "libmysqlclient-dev" 2>/dev/null | grep -q "ok installed"); then MISSINGPKG=$MISSINGPKG" libmysqlclient-dev"; fi
 fi
 
-if !( dpkg-query -W -f'${Status}' "pkgconf" 2>/dev/null | grep -q "ok installed"); then
-  if !( dpkg-query -W -f'${Status}' "pkg-config" 2>/dev/null | grep -q "ok installed"); then
-    MISSINGPKG=$MISSINGPKG" pkgconf";
-  fi
-fi
-
-if [ "$DISTO" != "Ubuntu" ] && [ "$DISTROMAJOR" -ge "12" ]; then
+if [ "$USELIBCAM" = "Y" ]; then
   if !( dpkg-query -W -f'${Status}' "libcamera-tools" 2>/dev/null | grep -q "ok installed"); then MISSINGPKG=$MISSINGPKG" libcamera-tools"; fi
   if !( dpkg-query -W -f'${Status}' "libcamera-dev"   2>/dev/null | grep -q "ok installed"); then MISSINGPKG=$MISSINGPKG" libcamera-dev"; fi
-  if !( dpkg-query -W -f'${Status}' "libcamera-v4l2"   2>/dev/null | grep -q "ok installed"); then MISSINGPKG=$MISSINGPKG" libcamera-v4l2"; fi
+  if !( dpkg-query -W -f'${Status}' "libcamera-v4l2"  2>/dev/null | grep -q "ok installed"); then MISSINGPKG=$MISSINGPKG" libcamera-v4l2"; fi
 fi
 
 if [ "$MISSINGPKG" = "" ]; then
@@ -157,22 +164,20 @@ else
 fi
 
 #########################################################################################
-#  1.  Create a temporary directory and copy in the Motion code.
+#  1.  Create a temporary directory and copy in the MotionPlus code.
 #########################################################################################
-  TEMPDIR=$(mktemp -d /tmp/motion.XXXXXX)
+  TEMPDIR=$(mktemp -d /tmp/motionplus.XXXXXX)
 
-  if [ -f "src/motion.c" ] ; then
-    echo "Using local version"
-    mkdir $TEMPDIR/motion
-    cp -r $BASEDIR/. $TEMPDIR/motion/
-    cd $TEMPDIR/motion
-    make cleanall
+  if [ -f "src/motionplus.cpp" ] ; then
+    echo "Using local source code version"
+    mkdir $TEMPDIR/motionplus
+    cp -r $BASEDIR/. $TEMPDIR/motionplus/
   else
     cd $TEMPDIR
-    git clone https://github.com/Motion-Project/motion.git
+    git clone https://github.com/Motion-Project/motionplus.git
   fi
 
-  cd $TEMPDIR/motion
+  cd $TEMPDIR/motionplus
   if ! git checkout $GITBRANCH ; then
     echo Unknown branch
     rm -rf $TEMPDIR
@@ -180,8 +185,8 @@ fi
   fi
 
   cd $BASEDIR
-  if [ -f "debian01/motion.postinst" ]; then
-    echo "Using local version"
+  if [ -f "plus01/motionplus.postinst" ]; then
+    echo "Using local package version"
     mkdir $TEMPDIR/motion-packaging
     cp -r $BASEDIR/* $TEMPDIR/motion-packaging
   else
@@ -189,28 +194,25 @@ fi
     git clone https://github.com/Motion-Project/motion-packaging.git
   fi
 
-  cd $TEMPDIR/motion
+  cd $TEMPDIR/motionplus
 
 #########################################################################################
 #  2.  Clean out any working files from the code base copied.
 #########################################################################################
-  rm -f config.status config.log config.cache Makefile motion.service motion.init-Debian motion.init-FreeBSD.sh
-  rm -f camera1-dist.conf camera2-dist.conf camera3-dist.conf camera4-dist.conf motion-dist.conf motion-help.conf motion.spec
-  rm -rf autom4te.cache config.h .github
+  rm -f config.status config.log config.cache Makefile motionplus.service
+  rm -f camera1-dist.conf camera2-dist.conf camera3-dist.conf sound1-dist.conf motionplus-dist.conf
+  rm -rf autom4te.cache config.h 
   rm -f *.gz *.o *.m4 *.*~
-  git rm -rf .github
+  if [ -d ".github" ]; then
+    git rm -rf .github
+  fi
 
 #########################################################################################
 #  3.  Tar up the code and move up to directory parent.
 #########################################################################################
-  # Version prior to 4.3 use ./version, 4.3+ use scripts/version.sh
-  if [ -x ./version.sh ] ; then
-    VERSION=$(./version.sh)
-  else
-    VERSION=$(scripts/version.sh)
-  fi
+  VERSION=$(scripts/version.sh)
   echo "Version: $VERSION"
-  TARNAME=motion_$VERSION.orig.tar.gz
+  TARNAME=motionplus_$VERSION.orig.tar.gz
 
   tar --exclude=".*" -zcf $TARNAME *
 
@@ -223,73 +225,44 @@ fi
 #########################################################################################
 
   cd $TEMPDIR/motion-packaging
-  if [ "$DISTO" = "Ubuntu" ]; then
-    if [ "$DISTROMAJOR" -ge "22" ]; then
-      cp -rf $TEMPDIR/motion-packaging/debian04 $TEMPDIR/motion/debian
-    elif [ "$DISTROMAJOR" -ge "20" ]; then
-      cp -rf $TEMPDIR/motion-packaging/debian03 $TEMPDIR/motion/debian
-    elif [ "$DISTROMAJOR" -ge "17" ]; then
-      cp -rf $TEMPDIR/motion-packaging/debian02 $TEMPDIR/motion/debian
-    else
-      cp -rf $TEMPDIR/motion-packaging/debian01 $TEMPDIR/motion/debian
-    fi
-  elif [ "$DISTO" = "Debian" ]; then
-    if [ "$DISTROMAJOR" -ge "12" ]; then
-      cp -rf $TEMPDIR/motion-packaging/debian05 $TEMPDIR/motion/debian
-    elif [ "$DISTROMAJOR" -ge "11" ]; then
-      cp -rf $TEMPDIR/motion-packaging/debian04 $TEMPDIR/motion/debian
-    elif [ "$DISTROMAJOR" -ge "10" ]; then
-      cp -rf $TEMPDIR/motion-packaging/debian03 $TEMPDIR/motion/debian
-    elif [ "$DISTROMAJOR" -ge "9" ]; then
-      cp -rf $TEMPDIR/motion-packaging/debian02 $TEMPDIR/motion/debian
-    else
-      cp -rf $TEMPDIR/motion-packaging/debian01 $TEMPDIR/motion/debian
-    fi
-  elif [ "$DISTO" = "Raspbian" ]; then
-    if [ "$DISTROMAJOR" -ge "12" ] ; then
-      cp -rf $TEMPDIR/motion-packaging/debian05 $TEMPDIR/motion/debian
-    elif [ "$DISTROMAJOR" -ge "9" ]; then
-      cp -rf $TEMPDIR/motion-packaging/debian04 $TEMPDIR/motion/debian
-    else
-      cp -rf $TEMPDIR/motion-packaging/debian01 $TEMPDIR/motion/debian
-    fi
+
+  if [ "$USELIBCAM" = "N" ]; then
+    cp -rf $TEMPDIR/motion-packaging/plus02 $TEMPDIR/motionplus/debian
   else
-    echo "Unsupported Distribution: $DISTO"
-    rm -rf $TEMPDIR
-    exit 1
+    cp -rf $TEMPDIR/motion-packaging/plus03 $TEMPDIR/motionplus/debian
   fi
 
 #########################################################################################
 #  4a.  Update the packaging changelog
 #########################################################################################
-  cd $TEMPDIR/motion
-  printf "motion ($VERSION-1) $DISTRONAME; urgency=medium\n\n  * See changelog in source\n\n -- $DEBUSERNAME <$DEBUSEREMAIL>  $DEBDATE\n" >./debian/changelog
+  cd $TEMPDIR/motionplus
+  printf "motionplus ($VERSION-1) $DISTRONAME; urgency=medium\n\n  * See changelog in source\n\n -- $DEBUSERNAME <$DEBUSEREMAIL>  $DEBDATE\n" >./debian/changelog
 
 #########################################################################################
 #  6.  Call the packager application (dpkg-buildpackage) output result to a buildlog file.
 #########################################################################################
   if ! [ $? -eq 0 ]; then
     echo "Unspecified error"
-    rm -rf $TEMPDIR
+    echo rm -rf $TEMPDIR
     exit 1
   fi
   echo "Building package...."
 
-  dpkg-buildpackage -us -uc -j4 >$TEMPDIR/motion_$VERSION-buildlog-$ARCH.txt 2>&1
+  dpkg-buildpackage -us -uc -j4 >$TEMPDIR/motionplus_$VERSION-buildlog-$ARCH.txt 2>&1
 
 ##############################################################################################
 #  7.  Move resulting files to the parent of the original source code directory and clean up
 ##############################################################################################
 
   CHK="N"
-  if ls $TEMPDIR/motion_$VERSION*.deb 1> /dev/null 2>&1; then
+  if ls $TEMPDIR/motionplus_$VERSION*.deb 1> /dev/null 2>&1; then
     CHK="Y"
   fi
 
   cd $BASEDIR
-  mv $TEMPDIR/motion_$VERSION* $BASEDIR
+  mv $TEMPDIR/motionplus_$VERSION* $BASEDIR
   rm -rf $TEMPDIR
-  for FILE in $BASEDIR/motion_$VERSION*; do
+  for FILE in $BASEDIR/motionplus_$VERSION*; do
     NEWNAME="_${FILE##*/}"
     NEWNAME=$DISTRONAME$NEWNAME
     mv "$FILE" "$NEWNAME"
