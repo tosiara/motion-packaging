@@ -51,7 +51,7 @@ if [ "$DISTO" != "Ubuntu" ] &&
   exit 1
 fi
 
-if [ "$DISTROMAJOR" == "n/a" ]; then
+if [[ "$DISTROMAJOR" == "n/a" ]]; then
   echo "Could not get DISTROMAJOR release number, forcing 99"
   DISTROMAJOR=99
 fi
